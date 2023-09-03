@@ -64,6 +64,14 @@ fun main(
     val mappingsFile = File(args[2])
     val minecraftJar = JarFile(args[3])
 
+    if(!inputFile.exists()) {
+        exit("Input mod file does not exist!")
+    }
+
+    if(!mappingsFile.exists()) {
+        exit("Could not load mappings!")
+    }
+
     if(outputFile.exists()) {
         println("Output mod will be overwritten")
         println()
@@ -77,14 +85,6 @@ fun main(
 
     var refmap = ""
     var accesswidener : JarEntry? = null
-
-    if(!inputFile.exists()) {
-        exit("Input mod file does not exist!")
-    }
-
-    if(!mappingsFile.exists()) {
-        exit("Could not load mappings!")
-    }
 
     fun sumFlags(
         flags : Array<Int>
