@@ -71,16 +71,16 @@ task<Exec>("refmapper") {
         "java",
         "-jar",
         "refmapper-VERSION.jar",
-        "build/list/BASE-VERSION.jar",
-        "build/libs/BASE-VERSION-refmap.jar",
+        "build/libs/MOD_NAME-MOD_VERSION.jar",
+        "build/libs/MOD_NAME-MOD_VERSION-refmap.jar",
         "refmapper/tiny", 
         ".gradle/loom-cache/minecraftMaven/net/minecraft/minecraft-merged-project-root/MINECRAFT_VERSION1-net.fabricmc.yarn.MINECRAFT_VERSION2.YARN_MAPPINGS-YARN_VERSION/minecraft-merged-project-root-MINECRAFT_VERSION1-net.fabricmc.yarn.MINECRAFT_VERSION2.YARN_MAPPINGS-YARN_VERSION.jar"
     )
 }
 ```
 
-6. Replace `BASE` to `${base.archivesName.get()}`
-7. Replace `VERSION` to `$version`
+6. Replace `MOD_NAME` to `${base.archivesName.get()}`
+7. Replace `MOD_VERSION` to `$version`
 
 if you're using `build.gradle.kts` from kotlin mod template
 
@@ -100,7 +100,7 @@ if you're using custom `build.gradle.kts`
 
 After each `gradlew build` execute `gradlew refmapper`
 
-Built mod file is `BASE-VERSION-refmap.jar`
+Built mod file is `MOD_NAME-MOD_VERSION-refmap.jar`
 
 # We are
 
