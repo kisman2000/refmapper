@@ -27,6 +27,14 @@ kotlin {
     jvmToolchain(8)
 }
 
-application {
-    mainClass.set("MainKt")
+tasks.jar {
+    manifest.attributes(
+        "Main-Class" to "MainKt"
+    )
+
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+    configurations["compileClasspath"].forEach { file : File ->
+        from(zipTree(file.absoluteFile))
+    }
 }
