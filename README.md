@@ -12,7 +12,7 @@ To build refmapper you need to have [JDK 17](https://www.oracle.com/java/technol
 
 </div>
 
-1. Download Ferret source code by clicking `Code -> Download ZIP` on [the main page](https://github.com/kisman2000/refmapper)
+1. Download refmapper source code by clicking `Code -> Download ZIP` on [the main page](https://github.com/kisman2000/refmapper)
 2. Extract the source code somewhere and open cmd (on Windows) or Terminal
 3. Execute `gradlew build` (if you're on Windows) or `chmod +x ./gradlew && ./gradlew build` (if you're on Linux) and wait until the building process finishes
 4. After that you should have a file called `refmapper-VERSION.jar` inside `<refmapper src>/build/libs` folder
