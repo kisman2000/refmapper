@@ -110,7 +110,7 @@ Remapping shadow fields/methods
 
 Remapping accesswinder instead of fabric loom(`WIP`)
 
-# Knows issues
+# Known issues
 
 `Redirect`/`ModifyArgs` hook may not work for methods whose descriptor is different from `()V`
 
