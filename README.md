@@ -53,7 +53,7 @@ Making mod executable
 
 <div align="center">
 
-# Usage via CLI in project
+# Usage via gradle
 
 To use refmapper you need to have project of fabric mod
 
