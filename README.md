@@ -42,7 +42,7 @@ Getting `named` minecraft jar
 
 1. Setup empty fabric mod project
 2. Execute `gradlew getSources` (if you're on Windows) or `chmod +x ./gradlew && gradlew getSources` (if you're on Linux) and wait until the process finishes
-3. Open each folder in `<project src>/.gradle/loom-cache` until you no longer see more folders
+3. Open each folder in `<project src>/.gradle/loom-cache/minecraftMaven/` until you no longer see more folders
 4. Move `XXX.jar` file(not `XXX-sources.jar`) to somewhere
 
 Making mod executable
