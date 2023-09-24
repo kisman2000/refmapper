@@ -106,6 +106,8 @@ Built mod file is `MOD_NAME-MOD_VERSION-refmap.jar`
 
 Handling `Inject`/`Redirect`/`ModifyArgs`/`Accessor`/`Invoker` hooks
 
+Handling `HEAD`/`TAIL`/`RETURN`/`INVOKE`/`FIELD` injection points
+
 Remapping shadow fields/methods
 
 Remapping accesswinder instead of fabric loom(`WIP`)

@@ -832,13 +832,12 @@ class InjectionAnnotationEntry(
     val type : InjectionTypes
 ) : IAnnotationEntry
 
-enum class InjectTypes(
-    val generateDescriptor : Boolean
-) {
-    HEAD(true),
-    TAIL(true),
-    INVOKE(false),
-    FIELD(false)
+enum class InjectTypes {
+    HEAD,
+    TAIL,
+    RETURN,
+    INVOKE,
+    FIELD
 }
 
 class At(
