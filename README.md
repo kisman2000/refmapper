@@ -22,7 +22,7 @@ To build refmapper you need to have [JDK 17](https://www.oracle.com/java/technol
 
 # Downloading
 
-You can download stable prebuilt JARs from [the releases page](https://github.com/cattyngmd/Ferret/releases)
+You can download stable prebuilt JARs from [the releases page](https://github.com/kisman2000/refmapper/releases)
 
 # Usage via CLI
 
@@ -110,7 +110,8 @@ Remapping shadow fields/methods
 
 Remapping accesswinder instead of fabric loom(`WIP`)
 
-# Known issues
+# Known
+issues
 
 `Redirect`/`ModifyArgs` hook may not work for methods whose descriptor is different from `()V`
 
