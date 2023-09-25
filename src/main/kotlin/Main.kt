@@ -534,11 +534,19 @@ fun main(
     println("Generating refmap entries")
 
     for((mixinEntry, annotationEntries) in mixinEntries) {
-        for(annotationEntry in annotationEntries) {
-            if(!refmapEntries.contains(mixinEntry.name)) {
-                refmapEntries[mixinEntry.name] = mutableListOf()
-            }
+        if(!refmapEntries.contains(mixinEntry.name)) {
+            refmapEntries[mixinEntry.name] = mutableListOf()
+        }
 
+        if(!mixinEntry.classes[0].contains("net/minecraft/class_")) {
+            val classEntry = findTinyEntry("L${mixinEntry.classes[0]};", "", TinyEntryTypes.CLASS) { it.named }
+
+            if(classEntry != null) {
+                refmapEntries[mixinEntry.name]!!.add(MixinEntry(classEntry.named, classEntry.intermediary))
+            }
+        }
+
+        for(annotationEntry in annotationEntries) {
             if(annotationEntry is GenAnnotationEntry) {
                 when(annotationEntry.type) {
                     GenTypes.ACCESSOR -> {
@@ -622,6 +630,7 @@ fun main(
     }
 
     println()
+    //TODO: override methods remapper
     println("Remapping shadow fields/methods")
 
     var shadowFields = 0
@@ -813,7 +822,7 @@ class MixinAnnotationEntry(
 ) : IAnnotationEntry {
     val classes = mutableListOf<String>().also {
         for (clazz in classes ?: emptyList()) {
-            it.add("$clazz")
+            it.add(clazz.toString())
         }
 
         it.addAll(targets ?: emptyList())
@@ -909,6 +918,14 @@ class FieldEntry(
 ) : IEntry {
     override fun key() = named
     override fun value() = "$intermediaryClass$intermediaryName:$intermediaryDescriptor"
+}
+
+class MixinEntry(
+    private val named : String,
+    private val intermediary : String
+) : IEntry {
+    override fun key() = named
+    override fun value() = intermediary
 }
 
 class SignatureNode(
