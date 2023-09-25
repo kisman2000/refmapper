@@ -108,6 +108,8 @@ Handling `Inject`/`Redirect`/`ModifyArgs`/`Accessor`/`Invoker` hooks
 
 Handling `HEAD`/`TAIL`/`RETURN`/`INVOKE`/`FIELD` injection points
 
+Remapping mixins with `ClassTypeSignature` as target
+
 Remapping shadow fields/methods
 
 Remapping accesswinder instead of fabric loom(`WIP`)
@@ -119,7 +121,7 @@ issues
 
 Remapped shadow field/method counters do not work correctly
 
-Mixins with `ClassTypeSignature` as target are not currently supported
+Mixins with override methods are not currently supported
 
 # Special thanks to
 [**cattyn**](https://github.com/cattyngmd)/[**ferret**](https://github.com/cattyngmd/ferret) for example of this readme
