@@ -846,7 +846,8 @@ enum class InjectTypes {
     TAIL,
     RETURN,
     INVOKE,
-    FIELD
+    FIELD,
+    JUMP
 }
 
 class At(
