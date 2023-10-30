@@ -120,7 +120,7 @@ Remapping accesswinder instead of fabric loom(`WIP`)
 
 Remapped shadow field/method counters do not work correctly
 
-Mixins with override methods are not currently supported
+Mixins with override methods are not currently supported(`WIP`)
 
 # Special thanks to
 [**cattyn**](https://github.com/cattyngmd)/[**ferret**](https://github.com/cattyngmd/ferret) for example of this readme

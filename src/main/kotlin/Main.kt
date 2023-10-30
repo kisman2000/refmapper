@@ -144,6 +144,10 @@ fun main(
         name : String
     ) = getAnnotation(name, visibleAnnotations) ?: getAnnotation(name, invisibleAnnotations)
 
+    fun FieldNode.hasAnnotations() = visibleAnnotations?.isNotEmpty() == true
+
+    fun MethodNode.hasAnnotations() = visibleAnnotations?.isNotEmpty() == true
+
     fun AnnotationNode.getValue(
         name : String
     ) = if(values.contains(name)) {
@@ -163,10 +167,9 @@ fun main(
         val split1 = desc.split(")")
         val params = split1[0].removePrefix("(").removeSuffix(if(void) CALLBACK_INFO else CALLBACK_INFO_RETURNABLE)
         var returnType = if(!void && type == InjectionTypes.INJECT) {
-            val split2 = signature.split(">")
-            val split3 = split2[split2.size - 2].split("<")
+            val signatureNode = SignatureNode(signature)
 
-            split3[split3.size - 1]
+            signatureNode.params[signatureNode.params.indexOf(CALLBACK_INFO_RETURNABLE) + 1]
         } else {
             split1[1]
         }
@@ -188,7 +191,7 @@ fun main(
 
     val inheritances = mutableMapOf<String, MutableList<String>>()
 
-    val shadowEntries = mutableSetOf<ShadowEntry>()
+    val remapEntries = mutableSetOf<RemapEntry>()
 
     val mixinEntries = mutableMapOf<MixinAnnotationEntry, MutableList<IAnnotationEntry>>()
     val tinyEntries = mutableListOf<TinyEntry>()
@@ -245,9 +248,9 @@ fun main(
     }
 
     fun mapMethodType(
-        descriptor : String
+        signature : String
     ) = try {
-        val signatureNode = SignatureNode(descriptor)
+        val signatureNode = SignatureNode(signature)
         val params = mutableListOf<String>()
         val returnType = mapDescriptor(signatureNode.returnType)
 
@@ -256,10 +259,10 @@ fun main(
         }
 
         "(${params.joinToString("")})$returnType"
-    } catch(exception : IndexOutOfBoundsException) {
-        exit("Cannot map $descriptor descriptor!")
+    } catch(throwable : Throwable) {
+        exit("Found incorrect signature $signature")
 
-        throw exception
+        throw throwable
     }
 
     fun findFieldTinyEntry(
@@ -361,7 +364,7 @@ fun main(
                 for(fieldNode in classNode.fields) {
                     val shadowAnnotation = fieldNode.getAnnotation(SHADOW_ANNOTATION)
 
-                    if(shadowAnnotation != null) {
+                    if(shadowAnnotation != null || !fieldNode.hasAnnotations()) {
                         delayedWrite = true
                     }
                 }
@@ -374,7 +377,7 @@ fun main(
                     val redirectAnnotation = methodNode.getAnnotation(REDIRECT_ANNOTATION)
                     val modifyArgsAnnotation = methodNode.getAnnotation(MODIFY_ARGS_ANNOTATION)
 
-                    if(shadowAnnotation != null) {
+                    if(shadowAnnotation != null || !methodNode.hasAnnotations()) {
                         delayedWrite = true
                     }
 
@@ -435,7 +438,7 @@ fun main(
                 }
 
                 if(delayedWrite) {
-                    shadowEntries.add(ShadowEntry(entry, mixinEntry))
+                    remapEntries.add(RemapEntry(entry, mixinEntry))
                 }
             }
         }
@@ -630,30 +633,29 @@ fun main(
     }
 
     println()
-    //TODO: override methods remapper
-    println("Remapping shadow fields/methods")
+    println("Remapping shadow/override fields/methods")
 
     var shadowFields = 0
-    var shadowMethods = 0
+    var overrideMethods = 0
 
-    for(shadowEntry in shadowEntries) {
-        val `is` = jarFile.getInputStream(shadowEntry.jar)
+    for(remapEntry in remapEntries) {
+        val `is` = jarFile.getInputStream(remapEntry.jar)
         val bytes = `is`.readBytes()
-        val classNode = remap(bytes, ShadowRemapper(
-            shadowEntry,
+        val classNode = remap(bytes, OverrideRemapper(
+            remapEntry,
             { name, clazz -> findFieldTinyEntry(name, clazz) },
             { name, clazz -> findMethodTinyEntry(name, clazz) },
             { shadowFields++ },
-            { shadowMethods++ }
+            { overrideMethods++ }
         ))
 
-        jos.putNextEntry(shadowEntry.jar)
+        jos.putNextEntry(remapEntry.jar)
         jos.write(write(classNode))
         jos.closeEntry()
     }
 
     println("Remapped $shadowFields shadow fields")
-    println("Remapped $shadowMethods shadow methods")
+    println("Remapped $overrideMethods override methods")
 
     if(accesswidener != null) {
         println()
@@ -808,7 +810,7 @@ class TinyEntry(
     val type : TinyEntryTypes
 )
 
-class ShadowEntry(
+class RemapEntry(
     val jar : JarEntry,
     val mixin : MixinAnnotationEntry
 )
@@ -818,7 +820,7 @@ interface IAnnotationEntry
 class MixinAnnotationEntry(
     val name : String,
     classes : Collection<Type>?,
-    targets : Collection<String>?,
+    targets : Collection<String>?
 ) : IAnnotationEntry {
     val classes = mutableListOf<String>().also {
         for (clazz in classes ?: emptyList()) {
@@ -1002,8 +1004,8 @@ class SignatureNode(
     }
 }
 
-class ShadowRemapper(
-    private val entry : ShadowEntry,
+class OverrideRemapper(
+    private val entry : RemapEntry,
     private val fieldEntryFinder : (String, String) -> TinyEntry?,
     private val methodEntryFinder : (String, String) -> TinyEntry?,
     private val fieldIncreaser : () -> Unit,
