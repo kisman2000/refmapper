@@ -583,11 +583,12 @@ fun main(
 
                                     val namedClass = "${split1[0]};"
                                     val namedMethod = split2[0].removePrefix(namedClass)
+                                    val namedDescriptor = "(${split2[1]}"
 
                                     val classEntry = findTinyEntry(namedClass, "", TinyEntryTypes.CLASS) { it.named }
 
                                     if(classEntry != null) {
-                                        val methodEntry2 = findMethodTinyEntry(namedMethod, classEntry.intermediary)
+                                        val methodEntry2 = findMethodTinyEntry("$namedMethod$namedDescriptor", classEntry.intermediary)
 
                                         if(methodEntry2 != null) {
                                             val intermediaryClass = classEntry.intermediary
