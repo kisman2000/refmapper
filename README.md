@@ -24,7 +24,7 @@ To build refmapper you need to have [JDK 17](https://www.oracle.com/java/technol
 
 You can download stable prebuilt JARs from [the releases page](https://github.com/kisman2000/refmapper/releases)
 
-# Usage via CLI(
+# Usage via CLI
 
 To use CLI you need to have `tiny` mappings and `named` minecraft jar
 
