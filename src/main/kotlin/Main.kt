@@ -19,6 +19,7 @@ import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
+import kotlin.jvm.optionals.getOrNull
 import kotlin.system.exitProcess
 
 const val API = Opcodes.ASM9
@@ -83,9 +84,6 @@ fun main(
 
     val jos = JarOutputStream(FileOutputStream(outputFile))
 
-    var refmap = ""
-    var accesswidener : JarEntry? = null
-
     fun sumFlags(
         flags : Array<Int>
     ) : Int {
@@ -148,9 +146,9 @@ fun main(
 
     fun MethodNode.hasAnnotations() = visibleAnnotations?.isNotEmpty() == true
 
-    fun AnnotationNode.getValue(
+    fun AnnotationNode?.getValue(
         name : String
-    ) = if(values.contains(name)) {
+    ) = if(this?.values?.contains(name) == true) {
         values[values.indexOf(name) + 1]
     } else {
         null
@@ -324,8 +322,6 @@ fun main(
         clazz : String
     ) = findMethodTinyEntry(name, listOf(clazz)) ?: findMethodTinyEntry(name, buildHierarchy(clazz, inheritances))
 
-    println("Processing mixins")
-
     val jarFile = JarFile(args[0])
 
     var accessors = 0
@@ -334,22 +330,56 @@ fun main(
     var redirects = 0
     var modifyArgs = 0
 
+    val fabricModJson = jarFile.entries().toList().stream().filter { it.name == "fabric.mod.json" }.findFirst().getOrNull()
+
+    val modloader = if(fabricModJson != null) {
+        ModLoaders.Fabric
+    } else {
+        ModLoaders.Forge
+    }
+
+    println("Found $modloader environment")
+
+    val mixinConfig = modloader.mixinConfigGetter(jarFile)
+
+    if(mixinConfig == null) {
+        exit("Could not find mixin config!")
+    } else {
+        println("Found \"${mixinConfig.name}\" mixin config")
+    }
+
+    val mixinsPackage : String
+    val refmap : String
+
+    run {
+        val bytes = jarFile.getInputStream(mixinConfig!!).readBytes()
+        val json = JsonParser.parseString(String(bytes))
+        val jobject = json.asJsonObject
+
+        mixinsPackage = (jobject["package"]?.asString ?: "").replace(".", "/")
+        refmap = jobject["refmap"]?.asString ?: ""
+    }
+
+    println("Found \"$mixinsPackage\" mixins package")
+    println("Found \"$refmap\" refmap")
+
+    val accesswidener = if(modloader == ModLoaders.Fabric) jarFile.entries().toList().stream().filter { it.name.endsWith(".accesswidener") }.findFirst().getOrNull().also {
+        if(it != null) {
+            println("Found ${it.name} accesswidener")
+        }
+    } else null
+
+    println()
+    println("Processing mixins")
+
     for(entry in jarFile.entries()) {
-        val `is` = jarFile.getInputStream(entry)!!
-        val bytes = `is`.readBytes()
+        val bytes = jarFile.getInputStream(entry).readBytes()
         var delayedWrite = false
 
-        if(entry.name.endsWith(".mixins.json") && refmap.isEmpty()) {
-            val json = JsonParser.parseString(String(bytes))
-            val jobject = json.asJsonObject
-
-            refmap = jobject["refmap"]?.asString ?: ""
-        } else if(entry.name.endsWith(".accesswidener")) {
-            accesswidener = entry
-            delayedWrite = true
-        } else if(entry.name.endsWith(".class")) {
+        if(entry.name == refmap) {
+            continue
+        } else if(entry.name.startsWith(mixinsPackage) && entry.name.endsWith(".class")) {
             val classNode = read(bytes)
-
             val mixinAnnotation = classNode.getAnnotation(MIXIN_ANNOTATION)
 
             if(mixinAnnotation != null) {
@@ -387,10 +417,10 @@ fun main(
                         increment : () -> Unit
                     ) {
                         if(annotationNode != null) {
-                            val value = annotationNode.getValue("value") as String
+                            val value = annotationNode.getValue("value") as String?
                             val remap = annotationNode.getValue("remap") as Boolean? ?: true
 
-                            if(remap) {
+                            if(value != null && remap) {
                                 mixinEntries[mixinEntry]!!.add(GenAnnotationEntry(value, type))
                                 increment()
                             }
@@ -541,7 +571,7 @@ fun main(
             refmapEntries[mixinEntry.name] = mutableListOf()
         }
 
-        if(!mixinEntry.classes[0].contains("net/minecraft/class_")) {
+        if(!mixinEntry.classes[0].contains("net/minecraft/")) {
             val classEntry = findTinyEntry("L${mixinEntry.classes[0]};", "", TinyEntryTypes.CLASS) { it.named }
 
             if(classEntry != null) {
@@ -768,7 +798,7 @@ fun main(
     writer.endObject()//mappings
     writer.name("data")
     writer.beginObject()//data
-    writer.name("named:intermediary")
+    writer.name(modloader.dataJobjectName)
     writer.beginObject()//named:intermediary
     writer.entries()
     writer.endObject()//named:intermediary
@@ -1024,3 +1054,38 @@ class OverrideRemapper(
         descriptor : String
     ) = methodEntryFinder("$name$descriptor", entry.mixin.classes[0])?.intermediary.also { if(it != null) methodIncreaser() } ?: name
 }
+
+//TODO: support for a few mixin configs
+ enum class ModLoaders(
+     val mixinConfigGetter : (JarFile) -> JarEntry?,
+     val dataJobjectName : String
+ ) {
+     Forge(
+         {
+             val mixinConfigs = it.manifest.mainAttributes.getValue("MixinConfigs")
+             val mixinConfig = if(mixinConfigs.contains(",")) mixinConfigs.split(",")[0] else mixinConfigs
+
+             it.entries().toList().stream().filter { entry -> entry.name == mixinConfig }.findFirst().getOrNull()
+         },
+         "searge"
+     ),
+     Fabric(
+         {
+             val fabricModJson = it.entries().toList().stream().filter { entry -> entry.name == "fabric.mod.json" }.findFirst().getOrNull()
+
+             if(fabricModJson == null) {
+                 null
+             } else {
+                  val `is` = it.getInputStream(fabricModJson)
+                  val bytes = `is`.readBytes()
+                  val json = JsonParser.parseString(String(bytes))
+                  val jobject = json.asJsonObject
+
+                 val mixins = jobject["mixins"].asJsonArray!!
+                 val mixinConfig = mixins[0].asString
+                 it.entries().toList().stream().filter { entry -> entry.name == mixinConfig }.findFirst().getOrNull()
+             }
+         },
+         "named:intermediary"
+     )
+ }
