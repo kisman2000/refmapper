@@ -146,7 +146,7 @@ if you're using custom `build.gradle.kts`
 
 <div align="center">
 
-### Fabric(`WIP`)
+### Forge(`WIP`)
 
 </div>
 
