@@ -677,7 +677,8 @@ fun main(
             { name, clazz -> findFieldTinyEntry(name, clazz) },
             { name, clazz -> findMethodTinyEntry(name, clazz) },
             { shadowFields++ },
-            { overrideMethods++ }
+            { overrideMethods++ },
+            mixinsPackage
         ))
 
         jos.putNextEntry(remapEntry.jar)
@@ -1040,19 +1041,30 @@ class OverrideRemapper(
     private val fieldEntryFinder : (String, String) -> TinyEntry?,
     private val methodEntryFinder : (String, String) -> TinyEntry?,
     private val fieldIncreaser : () -> Unit,
-    private val methodIncreaser : () -> Unit
+    private val methodIncreaser : () -> Unit,
+    private val mixinsPackage : String
 ) : Remapper() {
     override fun mapFieldName(
         owner : String,
         name : String,
         descriptor : String
-    ) = fieldEntryFinder(name, entry.mixin.classes[0])?.intermediary.also { if(it != null) fieldIncreaser() } ?: name
+    ) = if(owner.contains(mixinsPackage)) {
+        println("$owner $name $descriptor")
+        fieldEntryFinder(name, entry.mixin.classes[0])?.intermediary.also { if(it != null) fieldIncreaser() } ?: name
+    } else {
+        name
+    }
 
     override fun mapMethodName(
         owner : String,
         name : String,
         descriptor : String
-    ) = methodEntryFinder("$name$descriptor", entry.mixin.classes[0])?.intermediary.also { if(it != null) methodIncreaser() } ?: name
+    ) = if(owner.contains(mixinsPackage)) {
+        println("$owner $name $descriptor")
+        methodEntryFinder("$name$descriptor", entry.mixin.classes[0])?.intermediary.also { if(it != null) methodIncreaser() } ?: name
+    } else {
+        name
+    }
 }
 
 //TODO: support for a few mixin configs
