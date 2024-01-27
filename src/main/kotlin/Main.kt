@@ -602,7 +602,8 @@ fun main(
 
             if(annotationEntry is InjectionAnnotationEntry) {
                 for(method in annotationEntry.methods) {
-                    val methodEntry = findMethodTinyEntry("$method${if(annotationEntry.type.generatedDescriptor) annotationEntry.descriptor else ""}", mixinEntry.classes[0])
+                    val methodName = "$method${if(annotationEntry.type.generatedDescriptor) annotationEntry.descriptor else ""}"
+                    val methodEntry = findMethodTinyEntry(methodName, mixinEntry.classes[0])
 
                     if(methodEntry != null) {
                         for(at in annotationEntry.ats) {
@@ -657,6 +658,8 @@ fun main(
                         }
 
                         refmapEntries[mixinEntry.name]!!.add(InjectEntry(method, methodEntry.intermediary, methodEntry.descriptor, mixinEntry.classes[0]))
+                    } else {
+                        println("Couldn't find entry for $methodName")
                     }
                 }
             }
@@ -1049,7 +1052,6 @@ class OverrideRemapper(
         name : String,
         descriptor : String
     ) = if(owner.contains(mixinsPackage)) {
-        println("$owner $name $descriptor")
         fieldEntryFinder(name, entry.mixin.classes[0])?.intermediary.also { if(it != null) fieldIncreaser() } ?: name
     } else {
         name
@@ -1060,7 +1062,6 @@ class OverrideRemapper(
         name : String,
         descriptor : String
     ) = if(owner.contains(mixinsPackage)) {
-        println("$owner $name $descriptor")
         methodEntryFinder("$name$descriptor", entry.mixin.classes[0])?.intermediary.also { if(it != null) methodIncreaser() } ?: name
     } else {
         name
