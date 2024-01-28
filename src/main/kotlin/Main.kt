@@ -44,6 +44,8 @@ const val MODIFY_ARGS_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/Modif
 const val CALLBACK_INFO = "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;"
 const val CALLBACK_INFO_RETURNABLE = "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;"
 
+const val LAMBDA = "kotlin/jvm/internal/Lambda"
+
 fun main(
     args : Array<String>
 ) {
@@ -372,24 +374,29 @@ fun main(
     println()
     println("Processing mixins")
 
+    val lambdas = mutableSetOf<JarEntry>()
+    val mixinAnnotations = hashMapOf<String, MixinAnnotationEntry>()
+
     for(entry in jarFile.entries()) {
+        val entryName = entry.name
         val bytes = jarFile.getInputStream(entry).readBytes()
         var delayedWrite = false
 
-        if(entry.name == refmap) {
+        if(entryName == refmap) {
             continue
-        } else if(entry.name.startsWith(mixinsPackage) && entry.name.endsWith(".class")) {
+        } else if(entryName.startsWith(mixinsPackage) && entryName.endsWith(".class")) {
             val classNode = read(bytes)
             val mixinAnnotation = classNode.getAnnotation(MIXIN_ANNOTATION)
 
             if(mixinAnnotation != null) {
-                val mixinEntry = MixinAnnotationEntry(
+                val mixinAnnotationEntry = MixinAnnotationEntry(
                     classNode.name,
                     mixinAnnotation.getValue("value") as Collection<Type>?,
                     mixinAnnotation.getValue("targets") as Collection<String>?
                 )
 
-                mixinEntries[mixinEntry] = mutableListOf()
+                mixinAnnotations[classNode.name.split("/").last()] = mixinAnnotationEntry
+                mixinEntries[mixinAnnotationEntry] = mutableListOf()
 
                 for(fieldNode in classNode.fields) {
                     val shadowAnnotation = fieldNode.getAnnotation(SHADOW_ANNOTATION)
@@ -407,6 +414,7 @@ fun main(
                     val redirectAnnotation = methodNode.getAnnotation(REDIRECT_ANNOTATION)
                     val modifyArgsAnnotation = methodNode.getAnnotation(MODIFY_ARGS_ANNOTATION)
 
+                    //TODO: i think it ignores overridden methods
                     if(shadowAnnotation != null || !methodNode.hasAnnotations()) {
                         delayedWrite = true
                     }
@@ -421,7 +429,7 @@ fun main(
                             val remap = annotationNode.getValue("remap") as Boolean? ?: true
 
                             if(value != null && remap) {
-                                mixinEntries[mixinEntry]!!.add(GenAnnotationEntry(value, type))
+                                mixinEntries[mixinAnnotationEntry]!!.add(GenAnnotationEntry(value, type))
                                 increment()
                             }
                         }
@@ -454,7 +462,7 @@ fun main(
                                     }
                                 }
 
-                                mixinEntries[mixinEntry]!!.add(InjectionAnnotationEntry(method, ats, descriptor, type))
+                                mixinEntries[mixinAnnotationEntry]!!.add(InjectionAnnotationEntry(method, ats, descriptor, type))
                                 increment()
                             }
                         }
@@ -468,8 +476,11 @@ fun main(
                 }
 
                 if(delayedWrite) {
-                    remapEntries.add(RemapEntry(entry, mixinEntry))
+                    remapEntries.add(RemapEntry(entry, mixinAnnotationEntry))
                 }
+            } else if(classNode.superName == LAMBDA) {
+                delayedWrite = true
+                lambdas.add(entry)
             }
         }
 
@@ -477,6 +488,19 @@ fun main(
             jos.putNextEntry(entry)
             jos.write(bytes)
             jos.closeEntry()
+        }
+    }
+
+    for(entry in lambdas) {
+        //TODO: make it works with mixins from child packages
+        val className = entry.name.removePrefix("$mixinsPackage/").removeSuffix(".class")
+        val mixinName = className.split("$")[0]
+        val mixinAnnotation = mixinAnnotations[mixinName]
+
+        if(mixinAnnotation != null) {
+            remapEntries.add(RemapEntry(entry, mixinAnnotation))
+        } else {
+            println("Skipping lambda of $mixinName")
         }
     }
 
@@ -667,10 +691,10 @@ fun main(
     }
 
     println()
-    println("Remapping shadow/override fields/methods")
+    println("Remapping shadow/overridden members")
 
     var shadowFields = 0
-    var overrideMethods = 0
+    var overriddenMethods = 0
 
     for(remapEntry in remapEntries) {
         val `is` = jarFile.getInputStream(remapEntry.jar)
@@ -680,7 +704,7 @@ fun main(
             { name, clazz -> findFieldTinyEntry(name, clazz) },
             { name, clazz -> findMethodTinyEntry(name, clazz) },
             { shadowFields++ },
-            { overrideMethods++ },
+            { overriddenMethods++ },
             mixinsPackage
         ))
 
@@ -690,7 +714,7 @@ fun main(
     }
 
     println("Remapped $shadowFields shadow fields")
-    println("Remapped $overrideMethods override methods")
+    println("Remapped $overriddenMethods overridden methods")
 
     if(accesswidener != null) {
         println()
