@@ -195,9 +195,11 @@ Handling `HEAD`/`TAIL`/`RETURN`/`INVOKE`/`FIELD`/`JUMP` injection points
 
 Remapping mixins with `ClassTypeSignature` as target
 
-Remapping shadow fields/methods
+Remapping shadow/overridden members
 
 Remapping accesswinder instead of fabric loom(`WIP`)
+
+Remapping lambdas
 
 # Known issues
 
@@ -206,6 +208,8 @@ Remapping accesswinder instead of fabric loom(`WIP`)
 Remapped shadow field/method counters do not work correctly
 
 Mixins with override methods are not currently supported(`WIP`)
+
+Mixins from child packages are not currently supported
 
 # Special thanks to
 [**cattyn**](https://github.com/cattyngmd)/[**ferret**](https://github.com/cattyngmd/ferret) for example of this readme
