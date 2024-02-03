@@ -39,7 +39,9 @@ const val ACCESSOR_ANNOTATION = "Lorg/spongepowered/asm/mixin/gen/Accessor;"
 const val INVOKER_ANNOTATION = "Lorg/spongepowered/asm/mixin/gen/Invoker;"
 const val INJECT_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/Inject;"
 const val REDIRECT_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/Redirect;"
+const val MODIFY_ARG_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/ModifyArg;"
 const val MODIFY_ARGS_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/ModifyArgs;"
+const val MODIFY_VARIABLE_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/ModifyVariable;"
 
 const val CALLBACK_INFO = "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;"
 const val CALLBACK_INFO_RETURNABLE = "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;"
@@ -330,7 +332,9 @@ fun main(
     var invokers = 0
     var injects = 0
     var redirects = 0
+    var modifyArg = 0
     var modifyArgs = 0
+    var modifyVariable = 0
 
     val fabricModJson = jarFile.entries().toList().stream().filter { it.name == "fabric.mod.json" }.findFirst().getOrNull()
 
@@ -412,7 +416,9 @@ fun main(
                     val invokerAnnotation = methodNode.getAnnotation(INVOKER_ANNOTATION)
                     val injectAnnotation = methodNode.getAnnotation(INJECT_ANNOTATION)
                     val redirectAnnotation = methodNode.getAnnotation(REDIRECT_ANNOTATION)
+                    val modifyArgAnnotation = methodNode.getAnnotation(MODIFY_ARG_ANNOTATION)
                     val modifyArgsAnnotation = methodNode.getAnnotation(MODIFY_ARGS_ANNOTATION)
+                    val modifyVariableAnnotation = methodNode.getAnnotation(MODIFY_VARIABLE_ANNOTATION)
 
                     //TODO: i think it ignores overridden methods
                     if(shadowAnnotation != null || !methodNode.hasAnnotations()) {
@@ -468,11 +474,14 @@ fun main(
                         }
                     }
 
+                    //TODO: rewrite it
                     processGenAnnotation(accessorAnnotation, GenTypes.ACCESSOR) { accessors++ }
                     processGenAnnotation(invokerAnnotation, GenTypes.INVOKER) { invokers++ }
                     processInjectionAnnotation(injectAnnotation, InjectionTypes.INJECT) { injects++ }
                     processInjectionAnnotation(redirectAnnotation, InjectionTypes.REDIRECT) { redirects++ }
+                    processInjectionAnnotation(modifyArgAnnotation, InjectionTypes.MODIFY_ARG) { modifyArg++ }
                     processInjectionAnnotation(modifyArgsAnnotation, InjectionTypes.MODIFY_ARGS) { modifyArgs++ }
+                    processInjectionAnnotation(modifyVariableAnnotation, InjectionTypes.MODIFY_VARIABLE) { modifyVariable++ }
                 }
 
                 if(delayedWrite) {
@@ -504,11 +513,14 @@ fun main(
         }
     }
 
+    //TODO: refactor
     println("Processed $accessors @Accessor annotations")
     println("Processed $invokers @Invoker annotations")
     println("Processed $injects @Inject annotations")
     println("Processed $redirects @Redirect annotations")
+    println("Processed $modifyArg @ModifyArg annotations")
     println("Processed $modifyArgs @ModifyArgs annotations")
+    println("Processed $modifyVariable @ModifyVariable annotations")
     println()
     println("Processing mappings")
 
@@ -852,7 +864,9 @@ enum class InjectionTypes(
 ) {
     INJECT(false, true),
     REDIRECT(true, false),
-    MODIFY_ARGS(true, false)
+    MODIFY_ARG(true, false),
+    MODIFY_ARGS(true, false),
+    MODIFY_VARIABLE(true, false)
 }
 
 enum class TinyEntryTypes {
