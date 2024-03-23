@@ -660,13 +660,19 @@ fun main(
 
                                     if(classEntry != null) {
                                         val methodEntry2 = findMethodTinyEntry("$namedMethod$namedDescriptor", classEntry.intermediary)
+                                        val intermediaryClass = classEntry.intermediary
 
                                         if(methodEntry2 != null) {
-                                            val intermediaryClass = classEntry.intermediary
                                             val intermediaryMethod = methodEntry2.intermediary
                                             val intermediaryDescriptor = methodEntry2.descriptor
 
                                             refmapEntries[mixinEntry.name]!!.add(InvokeEntry(at.target, intermediaryClass, intermediaryMethod, intermediaryDescriptor))
+                                        } else {
+                                            println("Warning! Method entry for @At(target = \"${at.target}\") not found")
+
+                                            val intermediaryDescriptor = mapMethodType(namedDescriptor)
+
+                                            refmapEntries[mixinEntry.name]!!.add(InvokeEntry(at.target, intermediaryClass, namedMethod, intermediaryDescriptor))
                                         }
                                     }
                                 }
