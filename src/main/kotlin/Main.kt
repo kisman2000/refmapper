@@ -399,93 +399,97 @@ fun main(
                     mixinAnnotation.getValue("targets") as Collection<String>?
                 )
 
-                mixinAnnotations[classNode.name.split("/").last()] = mixinAnnotationEntry
-                mixinEntries[mixinAnnotationEntry] = mutableListOf()
+                if(mixinAnnotationEntry.classes.isNotEmpty()) {
+                    mixinAnnotations[classNode.name.split("/").last()] = mixinAnnotationEntry
+                    mixinEntries[mixinAnnotationEntry] = mutableListOf()
 
-                for(fieldNode in classNode.fields) {
-                    val shadowAnnotation = fieldNode.getAnnotation(SHADOW_ANNOTATION)
+                    for(fieldNode in classNode.fields) {
+                        val shadowAnnotation = fieldNode.getAnnotation(SHADOW_ANNOTATION)
 
-                    if(shadowAnnotation != null || !fieldNode.hasAnnotations()) {
-                        delayedWrite = true
-                    }
-                }
-
-                for(methodNode in classNode.methods) {
-                    val shadowAnnotation = methodNode.getAnnotation(SHADOW_ANNOTATION)
-                    val accessorAnnotation = methodNode.getAnnotation(ACCESSOR_ANNOTATION)
-                    val invokerAnnotation = methodNode.getAnnotation(INVOKER_ANNOTATION)
-                    val injectAnnotation = methodNode.getAnnotation(INJECT_ANNOTATION)
-                    val redirectAnnotation = methodNode.getAnnotation(REDIRECT_ANNOTATION)
-                    val modifyArgAnnotation = methodNode.getAnnotation(MODIFY_ARG_ANNOTATION)
-                    val modifyArgsAnnotation = methodNode.getAnnotation(MODIFY_ARGS_ANNOTATION)
-                    val modifyVariableAnnotation = methodNode.getAnnotation(MODIFY_VARIABLE_ANNOTATION)
-
-                    //TODO: i think it ignores overridden methods
-                    if(shadowAnnotation != null || !methodNode.hasAnnotations()) {
-                        delayedWrite = true
-                    }
-
-                    fun processGenAnnotation(
-                        annotationNode : AnnotationNode?,
-                        type : GenTypes,
-                        increment : () -> Unit
-                    ) {
-                        if(annotationNode != null) {
-                            val value = annotationNode.getValue("value") as String?
-                            val remap = annotationNode.getValue("remap") as Boolean? ?: true
-
-                            if(value != null && remap) {
-                                mixinEntries[mixinAnnotationEntry]!!.add(GenAnnotationEntry(value, type))
-                                increment()
-                            }
+                        if(shadowAnnotation != null || !fieldNode.hasAnnotations()) {
+                            delayedWrite = true
                         }
                     }
 
-                    fun processInjectionAnnotation(
-                        annotationNode : AnnotationNode?,
-                        type : InjectionTypes,
-                        increment : () -> Unit
-                    ) {
-                        if(annotationNode != null) {
-                            val method = annotationNode.getValue("method") as Collection<String>
-                            val at = if(type.singleAt) listOf(annotationNode.getValue("at") as AnnotationNode) else annotationNode.getValue("at") as Collection<AnnotationNode>
-                            val remap = annotationNode.getValue("remap") as Boolean? ?: true
+                    for(methodNode in classNode.methods) {
+                        val shadowAnnotation = methodNode.getAnnotation(SHADOW_ANNOTATION)
+                        val accessorAnnotation = methodNode.getAnnotation(ACCESSOR_ANNOTATION)
+                        val invokerAnnotation = methodNode.getAnnotation(INVOKER_ANNOTATION)
+                        val injectAnnotation = methodNode.getAnnotation(INJECT_ANNOTATION)
+                        val redirectAnnotation = methodNode.getAnnotation(REDIRECT_ANNOTATION)
+                        val modifyArgAnnotation = methodNode.getAnnotation(MODIFY_ARG_ANNOTATION)
+                        val modifyArgsAnnotation = methodNode.getAnnotation(MODIFY_ARGS_ANNOTATION)
+                        val modifyVariableAnnotation = methodNode.getAnnotation(MODIFY_VARIABLE_ANNOTATION)
 
-                            if(remap) {
-                                val descriptor = methodNode.createDescriptor(type)
-                                val ats = mutableListOf<At>()
+                        //TODO: i think it ignores overridden methods
+                        if(shadowAnnotation != null || !methodNode.hasAnnotations()) {
+                            delayedWrite = true
+                        }
 
-                                for(at0 in at) {
-                                    val value = at0.getValue("value") as String
-                                    val target = at0.getValue("target") as String? ?: ""
+                        fun processGenAnnotation(
+                            annotationNode : AnnotationNode?,
+                            type : GenTypes,
+                            increment : () -> Unit
+                        ) {
+                            if(annotationNode != null) {
+                                val value = annotationNode.getValue("value") as String?
+                                val remap = annotationNode.getValue("remap") as Boolean? ?: true
 
-                                    try {
-                                        val injectType = InjectTypes.valueOf(value)
-
-                                        ats.add(At(injectType, target))
-                                    } catch(_ : Exception) {
-                                        println("Warning! @At(value = \"$value\") not supported")
-                                    }
+                                if(value != null && remap) {
+                                    mixinEntries[mixinAnnotationEntry]!!.add(GenAnnotationEntry(value, type))
+                                    increment()
                                 }
-
-                                mixinEntries[mixinAnnotationEntry]!!.add(InjectionAnnotationEntry(method, ats, descriptor, type))
-                                increment()
                             }
                         }
+
+                        fun processInjectionAnnotation(
+                            annotationNode : AnnotationNode?,
+                            type : InjectionTypes,
+                            increment : () -> Unit
+                        ) {
+                            if(annotationNode != null) {
+                                val method = annotationNode.getValue("method") as Collection<String>
+                                val at = if(type.singleAt) listOf(annotationNode.getValue("at") as AnnotationNode) else annotationNode.getValue("at") as Collection<AnnotationNode>
+                                val remap = annotationNode.getValue("remap") as Boolean? ?: true
+
+                                if(remap) {
+                                    val descriptor = methodNode.createDescriptor(type)
+                                    val ats = mutableListOf<At>()
+
+                                    for(at0 in at) {
+                                        val value = at0.getValue("value") as String
+                                        val target = at0.getValue("target") as String? ?: ""
+
+                                        try {
+                                            val injectType = InjectTypes.valueOf(value)
+
+                                            ats.add(At(injectType, target))
+                                        } catch(_ : Exception) {
+                                            println("Warning! @At(value = \"$value\") not supported")
+                                        }
+                                    }
+
+                                    mixinEntries[mixinAnnotationEntry]!!.add(InjectionAnnotationEntry(method, ats, descriptor, type))
+                                    increment()
+                                }
+                            }
+                        }
+
+                        //TODO: rewrite it
+                        processGenAnnotation(accessorAnnotation, GenTypes.ACCESSOR) { accessors++ }
+                        processGenAnnotation(invokerAnnotation, GenTypes.INVOKER) { invokers++ }
+                        processInjectionAnnotation(injectAnnotation, InjectionTypes.INJECT) { injects++ }
+                        processInjectionAnnotation(redirectAnnotation, InjectionTypes.REDIRECT) { redirects++ }
+                        processInjectionAnnotation(modifyArgAnnotation, InjectionTypes.MODIFY_ARG) { modifyArg++ }
+                        processInjectionAnnotation(modifyArgsAnnotation, InjectionTypes.MODIFY_ARGS) { modifyArgs++ }
+                        processInjectionAnnotation(modifyVariableAnnotation, InjectionTypes.MODIFY_VARIABLE) { modifyVariable++ }
                     }
 
-                    //TODO: rewrite it
-                    processGenAnnotation(accessorAnnotation, GenTypes.ACCESSOR) { accessors++ }
-                    processGenAnnotation(invokerAnnotation, GenTypes.INVOKER) { invokers++ }
-                    processInjectionAnnotation(injectAnnotation, InjectionTypes.INJECT) { injects++ }
-                    processInjectionAnnotation(redirectAnnotation, InjectionTypes.REDIRECT) { redirects++ }
-                    processInjectionAnnotation(modifyArgAnnotation, InjectionTypes.MODIFY_ARG) { modifyArg++ }
-                    processInjectionAnnotation(modifyArgsAnnotation, InjectionTypes.MODIFY_ARGS) { modifyArgs++ }
-                    processInjectionAnnotation(modifyVariableAnnotation, InjectionTypes.MODIFY_VARIABLE) { modifyVariable++ }
-                }
-
-                if(delayedWrite) {
-                    remapEntries.add(RemapEntry(entry, mixinAnnotationEntry))
+                    if(delayedWrite) {
+                        remapEntries.add(RemapEntry(entry, mixinAnnotationEntry))
+                    }
+                } else {
+                    println("Warning! Skipping ${classNode.name.split("/").last()}")
                 }
             } else if(classNode.superName == LAMBDA) {
                 delayedWrite = true
