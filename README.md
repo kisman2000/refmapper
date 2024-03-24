@@ -189,7 +189,9 @@ Built mod file is `MOD_NAME-MOD_VERSION-refmap.jar`
 
 # We are
 
-Handling `Inject`/`Redirect`/`ModifyArgs`/`Accessor`/`Invoker` hooks
+Handling `Inject`/`Redirect`/`ModifyArgs`/`Accessor`/`Invoker` hooks of original mixins
+
+Handling `WrapWithCondition` hook of [MixinExtras](https://github.com/LlamaLad7/MixinExtras)
 
 Handling `HEAD`/`TAIL`/`RETURN`/`INVOKE`/`FIELD`/`JUMP` injection points
 
