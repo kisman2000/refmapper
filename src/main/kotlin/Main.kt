@@ -42,6 +42,7 @@ const val REDIRECT_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/Redirect
 const val MODIFY_ARG_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/ModifyArg;"
 const val MODIFY_ARGS_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/ModifyArgs;"
 const val MODIFY_VARIABLE_ANNOTATION = "Lorg/spongepowered/asm/mixin/injection/ModifyVariable;"
+const val WRAP_WITH_CONDITION_ANNOTATION = "Lcom/llamalad7/mixinextras/injector/v2/WrapWithCondition;"
 
 const val CALLBACK_INFO = "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;"
 const val CALLBACK_INFO_RETURNABLE = "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;"
@@ -335,6 +336,7 @@ fun main(
     var modifyArg = 0
     var modifyArgs = 0
     var modifyVariable = 0
+    var wrapWithCondition = 0
 
     val fabricModJson = jarFile.entries().toList().stream().filter { it.name == "fabric.mod.json" }.findFirst().getOrNull()
 
@@ -420,6 +422,7 @@ fun main(
                         val modifyArgAnnotation = methodNode.getAnnotation(MODIFY_ARG_ANNOTATION)
                         val modifyArgsAnnotation = methodNode.getAnnotation(MODIFY_ARGS_ANNOTATION)
                         val modifyVariableAnnotation = methodNode.getAnnotation(MODIFY_VARIABLE_ANNOTATION)
+                        val wrapWithConditionAnnotation = methodNode.getAnnotation(WRAP_WITH_CONDITION_ANNOTATION)
 
                         //TODO: i think it ignores overridden methods
                         if(shadowAnnotation != null || !methodNode.hasAnnotations()) {
@@ -483,6 +486,7 @@ fun main(
                         processInjectionAnnotation(modifyArgAnnotation, InjectionTypes.MODIFY_ARG) { modifyArg++ }
                         processInjectionAnnotation(modifyArgsAnnotation, InjectionTypes.MODIFY_ARGS) { modifyArgs++ }
                         processInjectionAnnotation(modifyVariableAnnotation, InjectionTypes.MODIFY_VARIABLE) { modifyVariable++ }
+                        processInjectionAnnotation(wrapWithConditionAnnotation, InjectionTypes.WRAP_WITH_CONDITION) { wrapWithCondition++ }
                     }
 
                     if(delayedWrite) {
@@ -513,7 +517,7 @@ fun main(
         if(mixinAnnotation != null) {
             remapEntries.add(RemapEntry(entry, mixinAnnotation))
         } else {
-            println("Skipping lambda of $mixinName")
+            println("Warning! Skipping lambda of $mixinName")
         }
     }
 
@@ -525,6 +529,7 @@ fun main(
     println("Processed $modifyArg @ModifyArg annotations")
     println("Processed $modifyArgs @ModifyArgs annotations")
     println("Processed $modifyVariable @ModifyVariable annotations")
+    println("Processed $wrapWithCondition @WrapWithCondition annotations")
     println()
     println("Processing mappings")
 
@@ -876,7 +881,8 @@ enum class InjectionTypes(
     REDIRECT(true, false),
     MODIFY_ARG(true, false),
     MODIFY_ARGS(true, false),
-    MODIFY_VARIABLE(true, false)
+    MODIFY_VARIABLE(true, false),
+    WRAP_WITH_CONDITION(false, false)
 }
 
 enum class TinyEntryTypes {
